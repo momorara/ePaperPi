@@ -19,17 +19,28 @@ importしたときは ep_lib.text() とする
 2024/12/09  ePaperを書いた後i2cがおかしくなるので、i2cをリセットするとした
 2025/01/10  RPi.GPIOを使わない方式とした
             ドライバーの都合なのか物理的には 128*296 のはずだが、128*293 の表示領域となります。
+2025/01/17  bdfparserを使わない
+
+2025/01/18
+もとのoPaperのライブラリはbitmapフォントを使用するもので、bdfparserを使うものとなっている。
+それだと、pipでのインストールが必要となりbookwormでは仮想環境が必要となる
+そのためbdfparserを使わない方法として、TrueTypeのみを使うこととした。
+しかし、TrueTypeをつかって、元のライブラリと共存させようとするとePaperの縦横がおかしくなる。
+そこで、TrueTypeを使う場合は、ImageDraw.Draw(image)上の領域に文字と図形を全て書きePaperに
+転送することで、表示することとする。
+なので、文字も図形もImageDraw クラスのメソッドを使うことにする。
+ただし、ePaperの初期化、転送のみ元のライブラリを使うこととなる。
 """
 
 import raspberrypi_epd
 # import RPi.GPIO as GPIO
 import numpy as np
-from bdfparser import Font
+# from bdfparser import Font
 import time
-from PIL import Image
 import random
 import os
 import time
+from PIL import Image, ImageDraw, ImageFont
 
 # Ejemplo de conexion
 # BUSY          GPIO4
@@ -46,10 +57,32 @@ busy_gpio, reset_gpio, dc_gpio, cs_gpio = 4,17,27,22
 display = raspberrypi_epd.WeAct213(busy=busy_gpio, reset=reset_gpio, dc=dc_gpio, cs=cs_gpio)
 display.init()
 
-path = '/home/pi/ePaperPi/'  # cronで起動するには絶対パスが必要
+# path = '/home/pi/ePaperPi/'  # cronで起動するには絶対パスが必要
+
+# TrueTypeイメージを書く領域を確保
+def image_set():
+    # ビットマップ画像のサイズ
+    image_width = 292
+    image_height = 128
+    # 新しい白黒画像を作成（モード1）
+    image = Image.new("1", (image_width, image_height), 1)  # 1は白、0は黒
+    # 描画用のオブジェクトを作成
+    draw = ImageDraw.Draw(image)
+    return draw,image
+
+def font_set(font,font_size):
+    # font : 明朝体=min ゴシック=gos min以外はゴシックになります
+    font_path = '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf'
+    if font == "min":
+        font_path = '/usr/share/fonts/truetype/fonts-japanese-mincho.ttf' 
+    # フォントを読み込む
+    font = ImageFont.truetype(font_path, font_size)
+    # return font_path,font_size,font
+    return font
 
 # 画面を白くクリアする
-def clear_w():
+def clear_w(draw):
+    draw.rectangle((0, 0, 292, 127), outline="white", fill="white")
     display.init()
     display.set_rotation(90)
     display.fill(raspberrypi_epd.Color.WHITE)
@@ -57,7 +90,8 @@ def clear_w():
     display.write_buffer()
 
 # 画面を黒くクリアする
-def clear_b():
+def clear_b(draw):
+    draw.rectangle((0, 0, 292, 127), outline="black", fill="black")
     display.init()
     display.set_rotation(90)
     display.fill(raspberrypi_epd.Color.BLACK)
@@ -84,21 +118,53 @@ def close():
     os.system("sudo rmmod i2c_bcm2835")
     os.system("sudo modprobe i2c_bcm2835")
 
+"""
+# # ビットマップフォントを設定する
+# def set_font(n):
+#     if n == 1:display.set_font(path + 'fonts/spleen-8x16.bdf')
+#     if n == 2:display.set_font(path + 'fonts/luBS14.bdf')
+#     if n == 3:display.set_font(path + 'fonts/helvB14.bdf')
+#     # font-bitmapに矛盾がありwarningが出ますが、表示します。
+#     # fontの種類により表示位置がずれます。
 
-# ビットマップフォントを設定する
-def set_font(n):
-    if n == 1:display.set_font(path + 'fonts/spleen-8x16.bdf')
-    if n == 2:display.set_font(path + 'fonts/luBS14.bdf')
-    if n == 3:display.set_font(path + 'fonts/helvB14.bdf')
-    # font-bitmapに矛盾がありwarningが出ますが、表示します。
-    # fontの種類により表示位置がずれます。
-
-# 文字を書く
+#文字を書く
 def text(text,x,y,set):
     # 長い文字列を表示する場合、表示域をはみ出すとエラーになります。
     display.draw_text(text, x+3, y, raspberrypi_epd.Color.BLACK)
     if set == 1:
         display.write_buffer() # ePaperに表示
+
+# # ビットマップ画像のサイズ
+# image_width = 128
+# image_height = 296
+# # 新しい白黒画像を作成（モード1）
+# image = Image.new("1", (image_width, image_height), 1)  # 1は白、0は黒
+# # 描画用のオブジェクトを作成
+# draw = ImageDraw.Draw(image)
+
+# def text(text,x,y,font,size,set):
+#     # ビットマップ画像のサイズ
+#     image_width = 128
+#     image_height = 296
+#     # 新しい白黒画像を作成（モード1）
+#     image = Image.new("1", (image_width, image_height), 1)  # 1は白、0は黒
+#     # 描画用のオブジェクトを作成
+#     draw = ImageDraw.Draw(image)
+#     if font=="gothic":
+#         font_path = '/usr/share/fonts/truetype/fonts-japanese-gothic.ttf'
+#     else:
+#         font_path = '/usr/share/fonts/truetype/fonts-japanese-mincho.ttf' 
+#     # フォントを読み込む
+#     font_size = size
+#     font = ImageFont.truetype(font_path, font_size) 
+#     japanese_text = text
+#     text_position = (x, y)
+#     draw.text(text_position, japanese_text, font=font, fill=0)  # 0は黒
+#     BorW = 0
+#     bmp_img(x,y,image,BorW,set)
+#     if set == 1:
+#         display.write_buffer() # ePaperに表示
+
 
 # 点を書く
 def pixel(x,y,color,set):
@@ -145,9 +211,10 @@ def bmp(x,y,path,BorW,set):
     # ビットマップファィルを読み込み bmp_img に渡す
     image = Image.open(path)
     bmp_img(x,y,image,BorW,set)
-
+"""
 # ビットマップイメージを描画
-def bmp_img(x,y,image,BorW,set):
+def ep_draw(x,y,image,BorW,set):
+    y=y+3
     # x,yの位置にpathの示すビットマップファィルを描画
     # BorW 0:ビットをそのまま　1:ビットを反転して描画
     # set 0:バッファに書くだけ　1:ePaperに書く
@@ -179,6 +246,7 @@ def bmp_img(x,y,image,BorW,set):
     # 画像データをディスプレイバッファに書き込み
     for x in range(WIDTH):
         for y in range(HEIGHT):
+            
             # ePaperのデフォルトが縦長な画面のため
             y1 = HEIGHT -1 - y
             # print(y,x,y1)
@@ -186,121 +254,97 @@ def bmp_img(x,y,image,BorW,set):
                 display.draw_pixel(y+3-dy, x+3+dx, raspberrypi_epd.Color.BLACK)
                 # draw_pixel(x,y,"B",0)
             else:  # 白ピクセル
+                # print(y+3-dy,x+3+dx)
                 display.draw_pixel(y+3-dy, x+3+dx, raspberrypi_epd.Color.WHITE)
                 # draw_pixel(x,y,"W",0)  
     if set == 1:
         display.write_buffer()  # ePaperに表示
+
 
 def main():
     # print("画面を初期化して、黒くする。")
     # clear_b()
 
     print("画面を初期化して、白くする。")
-    clear_w()
+    draw,image = image_set()
+    clear_w(draw)
 
-    set_font(3)
-    text("test text draw",0,0,1)
-
-    text("abcdefghijkl",0,20,0)
-    set_font(1)
-    text("abcdefghijklmnopq",0,45,0)
-    text("abcdefghijklmnopqrstuv",0,60,0)
-    text("abcdefghijklmnopqrstuvwxz",0,75,0)
-    text("ABCDEFGHIJKLMNOPQRSTUVXYZ",0,90,1)
-    set_font(3)
-    text("!#$%&'()=~|{`}*+_?><",0,105,1)
-
-    clear_w()
+    draw.text((0, 0) ,"日本語　ゴシック", font=font_set("gos",24) ,fill=0)  # 0は黒
+    draw.text((0, 26) ,"日本語　明朝", font=font_set("min",30) ,fill=0)  # 0は黒
+    draw.text((0, 57) ,"abcdefghijkl 0123456789", font=font_set("gos",20) ,fill=0)  # 0は黒
+    draw.text((0, 77) ,"0123456789 abcdefghijkl", font=font_set("gos",24) ,fill=0)  # 0は黒
+    draw.text((0, 102) ,"!#$%&'()+*<>?/.,", font=font_set("gos",20) ,fill=0)  # 0は黒
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    # image_set()
+    clear_w(draw)
 
 
-    set_font(3)
-    text("test randam 3000 pixels",0,0,0)
-    rectangle(0,30,292,127,"B",1)
+    draw.text((0, 0),"test random 3000 pixels", font=font_set("gos",24) ,fill=0)
+    draw.rectangle((0, 30, 291, 127), outline="black", fill="white")
     for i in range(3000):
-        x = random.randint(0, 292)
+        x = random.randint(0, 291)
         y = random.randint(30, 127)
-        pixel(x,y,"B",0)
+        draw.point((x, y), fill="black")
     write_buffer()
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    # line(0,30,292,127,"B",1)
-    time.sleep(5)
 
-    clear_w()
-
-    text("test randam 30 lines",0,0,0)
-    rectangle(0,30,292,127,"B",1)
+    draw.text((0, 0),"test random 80 line", font=font_set("gos",24) ,fill=0)
+    draw.rectangle((0, 30, 291, 127), outline="black", fill="white")
     for i in range(80):
-        x1 = random.randint(0, 292)
+        x1 = random.randint(0, 291)
         y1 = random.randint(30, 127)
-        x2 = random.randint(0, 292)
+        x2 = random.randint(0, 291)
         y2 = random.randint(30, 127)
-        line(x1,y1,x2,y2,"B",0)
+        draw.line((x1,y1,x2,y2), fill="black")
     write_buffer()   
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    clear_w()
-
-    set_font(3)
-    text("test randam 30 circles",0,0,0)
-    rectangle(0,30,292,127,"B",1)
-    for i in range(30):
-        x1 = random.randint(30, 260)
-        y1 = random.randint(60, 97)
+    draw.text((0, 0),"ttest random 60 circles", font=font_set("gos",24) ,fill=0)
+    draw.rectangle((0, 30, 291, 127), outline="black", fill="white")
+    for i in range(60):
+        x1 = random.randint(5, 270)
+        y1 = random.randint(30, 97)
         r = random.randint(3, 30)
-        # if x1 + r > 260:
-        #     x1 = x1 - r
-        # if y1 + r > 97:
-        #     y1 = y1 - r
-        circle(x1,y1,r,"B",0)
-    write_buffer()
+        draw.ellipse((x1, y1, x1+r ,y1+r), outline="black", fill="white")
+    write_buffer()   
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    clear_w()
+    # 既存の画像を開く 白黒画像に限る
+    bitmap = Image.open("bmp/checker1.bmp")
+    draw.bitmap((0, 0), bitmap, fill=None)
+    write_buffer()   
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    set_font(3)
-    text("test randam 30 rectangles",0,0,0)
-    rectangle(0,30,292,127,"B",1)
-    for i in range(30):
-        x1 = random.randint(0, 260)
-        y1 = random.randint(30, 120)
-        x2 = x1 + random.randint(5, 30)
-        y2 = y1 + random.randint(5, 30)
-        if x2 > 290:
-            x1 = 290
-        if y2  > 127:
-            y2 = 127
-        rectangle(x1,y1,x2,y2,"B",0)
-    write_buffer()
+    bitmap = Image.open("bmp/checker2.bmp")
+    draw.bitmap((0, 0), bitmap, fill=None)
+    write_buffer()   
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    clear_w()
+    bitmap = Image.open("bmp/1bpp41.bmp")
+    draw.bitmap((0, 0), bitmap, fill=None)
+    write_buffer()   
+    ep_draw(0,0,image,0,1)
+    time.sleep(1)
+    clear_w(draw)
 
-    set_font(3)
-    text("test bmpFile",30,30,1)
-
-    x,y = 20,0
-    BorW = 1
-
-    image_path = 'bmp/checker1.bmp'
-    bmp(x,y,image_path,BorW,1)
-    time.sleep(2)
-    clear_buffer()
-    clear_w()
-
-    image_path = 'bmp/1bpp41.bmp'
-    bmp(x,y,image_path,BorW,1)
-    time.sleep(2)
-    clear_buffer()
-    clear_w()
-
-    image_path = 'bmp/Mountain_250x128wb.bmp'
-    BorW = 0
-    bmp(x,y,image_path,BorW,1)
-    time.sleep(2)
-    clear_buffer()
-    BorW = 1
-    bmp(x,y,image_path,BorW,1)
+    bitmap = Image.open("bmp/Mountain_290x128wb.bmp")
+    draw.bitmap((0, 0), bitmap, fill=None)
+    write_buffer()   
+    ep_draw(0,0,image,0,1)
     time.sleep(3)
-    clear_buffer()
-    clear_w()
-    
+    clear_w(draw)
 
 
 if __name__ == '__main__':
