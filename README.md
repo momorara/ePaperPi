@@ -38,6 +38,7 @@ git clone https://github.com/momorara/ePaperPi <br>
 2025/02/19 新プログラムで、対応OS：Buster版(10.13)での動作を確認しました。<br>
 2025/03/25 対応OS：Bookworm版12.10(64bit)にて動作確認<br>
 2025/06/19 対応OS：Bookworm版12.11(64bit)にて動作確認<br>
+2025/10/03 Bookworm版12.12で確認、Trixie版13.1にて動作確認
   
 <h4><<ライセンス>></h4>
 GNU General Public License v3.0 <br>
