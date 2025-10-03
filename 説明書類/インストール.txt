@@ -24,12 +24,11 @@ BUSY		GPIO#4  *	(Pin 7)	紫 1
 *は変更可能
 *pi専用基板を作ったので、固定
 
-
-
 インストール方法
 bullseye、bookwormどちらでもインストール方法は同じです。
 
 2025/12/18 bullseye11.11、bookworm12.9で動作確認
+2025/10/03 Bookworm版12.12で確認、Trixie版13.1にて動作確認
 
 まず、
 spiを有効にする
