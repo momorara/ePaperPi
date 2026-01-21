@@ -1,0 +1,25 @@
+This product uses the following open-source software:
+
+- requests (Apache License 2.0)
+- NumPy (BSD License)
+- Pillow (HPND License)
+- RPi.GPIO (MIT License)
+- gpiozero (BSD License)
+- spidev (GPL-2.0+)
+- bdfparser (MIT License)
+- raspberrypi_epd
+
+Each software is licensed under its respective license.
+
+本製品は以下のオープンソースソフトウェアを使用しています。
+
+・requests（Apache License 2.0）
+・NumPy（BSD License）
+・Pillow（HPND License）
+・RPi.GPIO（MIT License）
+・gpiozero（BSD License）
+・spidev（GPL-2.0+）
+・bdfparser（MIT License）
+・raspberrypi_epd
+
+各ソフトウェアの著作権は、それぞれの権利者に帰属します。
