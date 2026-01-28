@@ -40,6 +40,7 @@ git clone https://github.com/momorara/ePaperPi <br>
 2025/06/19 対応OS：Bookworm版12.11(64bit)にて動作確認<br>
 2025/10/03 Bookworm版12.12で確認、Trixie版13.1にて動作確認<br>
 2025/11/17 対応OS：Trixie版13.2(64bit)にて動作確認しました。<br>
+2026/01/28 対応OS：Trixie版13.3(64bit)にて動作確認しました。<br>
   
 <h4><<ライセンス>></h4>
 GNU General Public License v3.0 <br>
