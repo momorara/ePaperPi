@@ -43,6 +43,7 @@ git clone https://github.com/momorara/ePaperPi <br>
 2026/01/28 対応OS：Trixie版13.3(64bit)にて動作確認しました。<br>
 2026/03/19 対応OS：Trixie版13.4(64bit)にて動作確認しました。<br>
 2026/05/18 対応OS：Trixie版13.5(64bit)にて動作確認しました。<br>
+2026/09/15 対応OS：Trixie版13.7(64bit)にて動作確認しました。<br>
   
 <h4><<ライセンス>></h4>
 GNU General Public License v3.0 <br>
